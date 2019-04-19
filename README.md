@@ -1,5 +1,8 @@
 # Cliff-Tool
 
-[!Graph](graph.png)
+## Graph
+![Graph](graph.png)
 
-[!Current Result](result.png)
+
+## Current Result
+![Current Result](result.png)
