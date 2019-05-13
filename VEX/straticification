@@ -1,0 +1,126 @@
+// need export
+float seed = ch("seed");
+float base_layer_height = ch("base_layer_height");
+float layer_height_randomness = ch("layer_height_randomness");
+float layer_interval = ch("layer_interval");
+float max_bias = ch("max_bias");
+float x_bias_angle = ch("x_bias_angle");
+float z_bias_angle = ch("z_bias_angle");
+float size = ch("size");
+int layer_count = chi("layer_count"); // max layer count
+// need export
+
+float y_min, y_max;
+float y_angle_offset;
+
+// find bounding box
+vector min_box, max_box;
+getbbox(1, min_box, max_box);
+y_min = min_box.y;
+y_max = max_box.y;
+
+// calculate bias
+x_bias_angle = clamp(x_bias_angle, -max_bias, max_bias);
+z_bias_angle = clamp(z_bias_angle, -max_bias, max_bias);
+float x_bias_rad = radians(x_bias_angle);
+float z_bias_rad = radians(z_bias_angle);
+float x_bias = tan(x_bias_rad) * size;
+float z_bias = tan(z_bias_rad) * size;
+float y_offset = abs(x_bias) + abs(z_bias);
+
+
+
+
+// 0 --- 1 --- x
+// |     |
+// |     |
+// 3 --- 2
+// |
+// |
+// z
+
+vector floor_point_pos[];
+vector fp_pos0 = set(-size, y_min - x_bias - z_bias - y_offset, -size);
+vector fp_pos1 = set(size, y_min + x_bias - z_bias - y_offset, -size);
+vector fp_pos2 = set(size, y_min + x_bias + z_bias - y_offset, size);
+vector fp_pos3 = set(-size, y_min - x_bias + z_bias - y_offset, size);
+append(floor_point_pos, fp_pos0);
+append(floor_point_pos, fp_pos1);
+append(floor_point_pos, fp_pos2);
+append(floor_point_pos, fp_pos3);
+
+// calc min y point
+float min_y_val = floor_point_pos[0].y;
+int min_y_idx = 0;
+for (int i = 1; i < 4; ++i) {
+    if (floor_point_pos[i].y < min_y_val) {
+        min_y_idx = i;
+        min_y_val = floor_point_pos[i].y;
+    }
+}
+
+vector roof_point_pos[];
+for (int i = 0; i <4; ++i) {
+    append(roof_point_pos, {0, 0, 0});
+}
+
+// bias ensure angle, offset ensure full coverage
+for (int i = 0; i < layer_count && floor_point_pos[min_y_idx].y < y_max; ++i) {
+    float layer_leviation =
+        (rand(seed + (float)i) - 0.5) * layer_height_randomness * 0.5
+            + base_layer_height;
+    vector layer_leviation_v = set(0, layer_leviation, 0);
+    int fp[], rp[];
+    for (int j = 0; j < 4; ++j) {
+        roof_point_pos[j] = floor_point_pos[j] + layer_leviation_v;
+        append(fp, addpoint(0, floor_point_pos[j]));
+        append(rp, addpoint(0, roof_point_pos[j]));
+    }
+    // construct primitive, normal follows left hand rule    
+    int top_prim = addprim(0, "poly");
+    addvertex(0, top_prim, rp[0]);
+    addvertex(0, top_prim, rp[1]);
+    addvertex(0, top_prim, rp[2]);
+    addvertex(0, top_prim, rp[3]);
+    
+    int bottom_prim = addprim(0, "poly");
+    addvertex(0, bottom_prim, fp[3]);
+    addvertex(0, bottom_prim, fp[2]);
+    addvertex(0, bottom_prim, fp[1]);
+    addvertex(0, bottom_prim, fp[0]);
+    
+    int left_prim = addprim(0, "poly");
+    addvertex(0, left_prim, fp[0]);
+    addvertex(0, left_prim, fp[3]);
+    addvertex(0, left_prim, rp[3]);
+    addvertex(0, left_prim, rp[0]);
+    
+    int right_prim = addprim(0, "poly");
+    addvertex(0, right_prim, fp[1]);
+    addvertex(0, right_prim, rp[1]);
+    addvertex(0, right_prim, rp[2]);
+    addvertex(0, right_prim, fp[2]);
+    
+    int front_prim = addprim(0, "poly");
+    addvertex(0, front_prim, fp[2]);
+    addvertex(0, front_prim, rp[2]);
+    addvertex(0, front_prim, rp[3]);
+    addvertex(0, front_prim, fp[3]);
+    
+    int back_prim = addprim(0, "poly");
+    addvertex(0, back_prim, fp[0]);
+    addvertex(0, back_prim, rp[0]);
+    addvertex(0, back_prim, rp[1]);
+    addvertex(0, back_prim, fp[1]);
+    
+    // update floor pos
+    for (int j = 0; j < 4; ++j) {
+        floor_point_pos[j] = set(roof_point_pos[j]);
+        floor_point_pos[j].y += layer_interval;
+    }
+}
+
+
+
+
+

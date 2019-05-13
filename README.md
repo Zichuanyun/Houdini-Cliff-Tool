@@ -34,7 +34,7 @@ The cliff generation procedure is based on Ubisoft's GDC talk. Only five steps: 
 
 Points with high slope are selected into a group. The threshold is ajustable.
 
-![](img/slope_thresh)
+![](img/slope_thresh.png)
 
 ### Preparing Geometry
 
